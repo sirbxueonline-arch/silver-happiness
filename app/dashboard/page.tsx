@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,12 +13,27 @@ export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { usage } = useUsage()
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin")
+      return
     }
-  }, [status, router])
+
+    if (status === "authenticated" && session?.user?.id) {
+      fetch("/api/user/check-onboarding")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.needsOnboarding) {
+            router.push("/onboarding")
+          } else {
+            setCheckingOnboarding(false)
+          }
+        })
+        .catch(() => setCheckingOnboarding(false))
+    }
+  }, [status, router, session])
 
   if (status === "loading" || checkingOnboarding) {
     return <div className="container p-8">Loading...</div>
