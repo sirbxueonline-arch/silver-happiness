@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String   @id @default(cuid())
+  email                   String   @unique
+  passwordHash            String
+  name                    String?
+  grade                   String?
+  subjects                String   @default("[]") // JSON array as string
+  defaultLanguage         String   @default("en")
+  explanationStyleDefault String   @default("balanced")
+  hintModeDefault         Boolean  @default(false)
+  themePreference         String   @default("system") // system/dark/light
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  usage        Usage[]
+  libraryItems LibraryItem[]
+  referrals    ReferralEvent[]
+  feedback     FeedbackRequest[]
+}
+
+model Usage {
+  id            String   @id @default(cuid())
+  userId        String
+  monthKey      String   // YYYY-MM format
+  resourcesUsed Int      @default(0)
+  resourceLimit Int      @default(20)
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthKey])
+  @@index([userId, monthKey])
+}
+
+model LibraryItem {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // EXPLAIN | FLASHCARDS | QUIZ | PLAN
+  title     String
+  subject   String?
+  tags      String   @default("[]") // JSON array as string
+  payload   String   // JSON string of the generated content
+  favorite  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
+}
+
+model ReferralEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // INVITE_SENT | SIGNUP
+  meta      String   @default("{}") // JSON object as string
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model FeedbackRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
